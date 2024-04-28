@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Koło fortuny</title>
+    <style>
+          body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Style the container */
+        .container {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            animation: fadeIn 1s ease;
+        }
+
+        /*buttons */
+        .button {
+            margin-bottom: 20px;
+            background-color: #6c5ce7;
+            border: none;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(108, 92, 231, 0.3);
+            color: #fff;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 24px;
+            padding: 12px 24px;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #5346b8;
+        }
+
+        /* spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top-color: #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+            display: none;
+        }
+        /*controls */
+       .controls {
+    margin-top: 20px;
+    display: line;
+    align-items: center;
+}
+
+/* input and select elements */
+.controls input,
+.controls select {
+    padding: 12px 24px; /* Spójny padding */
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-bottom: 15px;
+    width: 200px; /* Spójna szerokość */
+    box-shadow: 0 4px 6px rgba(108, 92, 231, 0.3);
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px; /* Dodanie tej samej wysokości wiersza */
+}
+
+/* button */
+.controls button {
+    margin-bottom: 20px;
+    background-color: #6c5ce7;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px rgba(108, 92, 231, 0.3);
+    color: #fff;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px; 
+    padding: 12px 24px; 
+    transition: background-color 0.3s ease;
+}
+
+
+        /*result */
+        #result {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Keyframes */
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Koło fortuny </h1>
+        <h2> (tuszol go nie zrobił, nie zepsuje się)</h2>
+        
+        <canvas id="wheelCanvas" width="400" height="400"></canvas>
+        <div id="result"></div>
+        <div class="controls">
+            <h2>Dodaj wyniki do koła fortuny</h2>
+            <input type="text" id="optionInput" placeholder="Dodaj opcje do losowania ">
+            <button id="addOptionBtn">Dodaj </button>
+            <div class="container-delete">
+                <h2>Wybierz wynik do usunięcia </h2>
+                <h3>(najpierw usuń od 1-4)</h3>
+            <select id="optionSelect">
+                <!-- Options storage -->
+            </select>
+           
+            <button id="deleteOptionBtn">Usuń</button></div>
+            <button id="spinBtn">Kręć kołem!</button>
+           
+        </div>
+        
+       
+    </div>
+
+    <script>
+        // Get DOM elements
+        const wheelCanvas = document.getElementById('wheelCanvas');
+        const optionInput = document.getElementById('optionInput');
+        const addOptionBtn = document.getElementById('addOptionBtn');
+        const deleteOptionBtn = document.getElementById('deleteOptionBtn');
+        const spinBtn = document.getElementById('spinBtn');
+        const optionSelect = document.getElementById('optionSelect');
+        const resultDiv = document.getElementById('result');
+
+        // Canvas context
+        const ctx = wheelCanvas.getContext('2d');
+
+        // List of options for the wheel
+        let options = ["Tuszol", "Bandura", "Dzinold","Wszyscy"];
+
+        // Wheel properties
+        const wheelCenterX = 200;
+        const wheelCenterY = 200;
+        const wheelRadius = 150;
+        let rotationAngle = 0;
+        let isSpinning = false;
+        let spinSpeed = 0;
+
+        // Function to draw the wheel
+        function drawWheel() {
+            ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+            const numOptions = options.length;
+            const angle = 2 * Math.PI / numOptions;
+
+            for (let i = 0; i < numOptions; i++) {
+                const startAngle = rotationAngle + i * angle;
+                const endAngle = startAngle + angle;
+
+                // Choose a color for each section
+                ctx.fillStyle = `hsl(${(i * 360 / numOptions)}, 80%, 50%)`;
+
+                // Draw the section
+                ctx.beginPath();
+                ctx.moveTo(wheelCenterX, wheelCenterY);
+                ctx.arc(wheelCenterX, wheelCenterY, wheelRadius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fill();
+
+                // Draw the text
+                ctx.fillStyle = 'black';
+                ctx.font = '16px Arial';
+                const textAngle = startAngle + angle / 2;
+                const textX = wheelCenterX + Math.cos(textAngle) * wheelRadius / 2;
+                const textY = wheelCenterY + Math.sin(textAngle) * wheelRadius / 2;
+                ctx.save();
+                ctx.translate(textX, textY);
+                ctx.rotate(textAngle);
+                ctx.textAlign = 'center';
+                ctx.fillText(options[i], 0, 0);
+                ctx.restore();
+            }
+        }
+
+        // Function to update the options in the dropdown menu
+        function updateOptionsInDropdown() {
+            optionSelect.innerHTML = ''; // Clear the existing options
+            for (let i = 0; i < options.length; i++) {
+                const option = options[i];
+                const optionElement = document.createElement('option');
+                optionElement.value = i;
+                optionElement.textContent = option;
+                optionSelect.appendChild(optionElement);
+            }
+        }
+
+        // Function to spin the wheel
+        function spinWheel() {
+            if (isSpinning) return; // Prevent multiple spins at once
+
+            const spinDuration = 3000; // Duration of the spin in milliseconds
+            const spinMaxSpeed = 10; // Maximum speed of the spin
+            const deceleration = spinMaxSpeed / (spinDuration / 1000);
+
+            // Calculate the random landing angle
+            const numOptions = options.length;
+            const randomAngle = Math.floor(Math.random() * 360);
+            const targetAngle = randomAngle + 360 * Math.floor(Math.random() * 5);
+
+            // Calculate the total angle to rotate
+            const totalAngle = targetAngle - rotationAngle;
+
+            // Calculate the spin duration
+            const framesPerSecond = 60;
+            const totalFrames = Math.floor(spinDuration / (1000 / framesPerSecond));
+
+            // Calculate angle per frame
+            const anglePerFrame = totalAngle / totalFrames;
+
+            // Start the spin
+            isSpinning = true;
+            let currentFrame = 0;
+
+            function spinAnimation() {
+                if (currentFrame >= totalFrames) {
+                    isSpinning = false;
+
+                    // Calculate the winning option
+                    const winningOptionIndex = Math.floor((rotationAngle % 360) / (360 / numOptions));
+                    const winningOption = options[winningOptionIndex];
+                    
+
+                    // Display the result
+                    resultDiv.textContent = `Wynik losowania to: ${winningOption}`;
+                    resultDiv.style.display = 'block';
+                  
+                    return;
+                }
+
+                // Calculate the current angle
+                rotationAngle += anglePerFrame;
+
+                // Draw the wheel with the current angle
+                drawWheel();
+
+                // Increment the frame counter
+                currentFrame++;
+
+                // Continue the animation
+                requestAnimationFrame(spinAnimation);
+            }
+
+            // Start the animation
+            spinAnimation();
+        }
+
+        // Event listeners
+        addOptionBtn.addEventListener('click', () => {
+            const newOption = optionInput.value.trim();
+            if (newOption) {
+                options.push(newOption);
+                optionInput.value = '';
+                updateOptionsInDropdown(); // Update the dropdown menu
+                drawWheel(); // Redraw the wheel with the new option
+            }
+        });
+
+        deleteOptionBtn.addEventListener('click', () => {
+            const selectedIndex = optionSelect.value;
+            if (selectedIndex !== '') {
+                options.splice(selectedIndex, 1);
+                updateOptionsInDropdown(); // Update the dropdown menu
+                drawWheel(); // Redraw the wheel without the deleted option
+            }
+        });
+
+        spinBtn.addEventListener('click', spinWheel);
+
+        // Initial setup
+        updateOptionsInDropdown(); // Populate the dropdown menu with initial options
+        drawWheel(); // Initial drawing of the wheel
+    </script>
+</body>
+</html>

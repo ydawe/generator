@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator tematów</title>
+    <style>
+        /* Style the body */
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Style the container */
+        .container {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            animation: fadeIn 1s ease;
+        }
+
+        /* Style the buttons */
+        .button {
+            margin-bottom: 20px;
+            background-color: #6c5ce7;
+            border: none;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(108, 92, 231, 0.3);
+            color: #fff;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 24px;
+            padding: 12px 24px;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #5346b8;
+        }
+        .href{
+            text-decoration: none;
+            margin-bottom: 20px;
+            background-color: #b964b9;
+            border: none;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(108, 92, 231, 0.3);
+            color: #fff;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 24px;
+            padding: 12px 24px;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Style the spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top-color: #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        /* Style the result */
+        #result {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Keyframes */
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Temat odcinka!</h1>
+        <button class="button" onclick="draw()">Losuj!</button>
+        <div class="spinner" id="spinner"></div>
+        <div id="result"></div>
+        <a href="index.html" class="href">Przejdz do koła fortuny</a>
+        
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.0/xlsx.full.min.js"></script>
+    <script>
+        // Globalna lista dostępnych elementów z kolumny A
+        let availableItems = [];
+
+        function draw() {
+            const filePath = 'ideas.xlsx';
+            const button = document.querySelector('.button');
+            const spinner = document.getElementById('spinner');
+            const result = document.getElementById('result');
+
+            button.style.display = 'none';
+            spinner.style.display = 'block';
+            result.style.display = 'none';
+            
+            fetch(filePath)
+                .then(response => response.blob())
+                .then(blob => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+                        // Inicjalizacja dostępnych elementów z kolumny A, jeśli to pierwsze losowanie
+                        if (availableItems.length === 0) {
+                            const range = XLSX.utils.decode_range(sheet['!ref']);
+                            for (let i = range.s.r; i <= range.e.r; i++) {
+                                const cell = sheet[XLSX.utils.encode_cell({r: i, c: 0})];
+                                if (cell && cell.v) {
+                                    availableItems.push(cell.v);
+                                }
+                            }
+                        }
+
+                        // Losowanie unikatowego elementu
+                        const index = Math.floor(Math.random() * availableItems.length);
+                        const randomItemA = availableItems[index];
+
+                        // Usunięcie wylosowanego elementu z listy dostępnych elementów
+                        availableItems.splice(index, 1);
+
+                        result.style.animation = 'fadeIn 0.5s ease';
+
+                        setTimeout(function() {
+                            spinner.style.display = 'none';
+                            result.style.display = 'block';
+                            result.innerHTML = `<p style="margin: 0;">Twój temat odcinka to:</p><h2 style="margin-top: 10px;">${randomItemA}</h2>`;
+                            button.style.display = 'block';
+                        }, 2000);
+                    };
+
+                    reader.readAsArrayBuffer(blob);
+                })
+                .catch(error => {
+                    console.error('Error fetching file:', error);
+                    spinner.style.display = 'none';
+                    button.style.display = 'block';
+                });
+        }
+    </script>
+</body>
+</html>
